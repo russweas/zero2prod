@@ -2,11 +2,15 @@ use tracing::subscriber::set_global_default;
 use tracing::Subscriber;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 
-pub fn get_subscriber(name: String, env_filter: String) -> impl Subscriber + Send + Sync {
+pub fn get_subscriber(
+    name: String,
+    env_filter: String,
+    sink: impl MakeWriter + Send + Sync + 'static,
+) -> impl Subscriber + Send + Sync {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let formatting_layer = BunyanFormattingLayer::new("zero2prod".into(), std::io::stdout);
+    let formatting_layer = BunyanFormattingLayer::new("zero2prod".into(), sink);
     Registry::default()
         .with(env_filter)
         .with(JsonStorageLayer)

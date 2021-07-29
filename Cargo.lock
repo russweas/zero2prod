@@ -391,6 +391,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "claim"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f81099d6bb72e1df6d50bb2347224b666a670912bb7f06dbe867a4a070ab3ce8"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "config"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2205,6 +2214,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-actix-web"
+version = "0.4.0-beta.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c794ee03ca18c0d149e6928db480700644ab405f553f55dc0650f541e73dc180"
+dependencies = [
+ "actix-web",
+ "futures",
+ "tracing",
+ "tracing-futures",
+ "uuid",
+]
+
+[[package]]
 name = "tracing-attributes"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2573,18 +2595,22 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "chrono",
+ "claim",
  "config",
  "env_logger",
  "log",
+ "once_cell",
  "reqwest",
  "serde 1.0.126",
  "sqlx",
  "tokio",
  "tracing",
+ "tracing-actix-web",
  "tracing-bunyan-formatter",
  "tracing-futures",
  "tracing-log",
  "tracing-subscriber",
+ "unicode-segmentation",
  "uuid",
 ]
 

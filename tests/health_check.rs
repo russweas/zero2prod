@@ -1,7 +1,10 @@
 use sqlx::{Connection, Database, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
+use zero2prod::{
+    configuration::{get_configuration, DatabaseSettings},
+    telemetry::{get_subscriber, init_subscriber},
+};
 #[actix_rt::test]
 async fn health_check_works() {
     let app = spawn_app().await;
@@ -73,7 +76,49 @@ async fn subscribe_returns_a_400_for_invalid_form_data() {
     }
 }
 
+#[actix_rt::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+    ];
+
+    for (body, description) in test_cases {
+        let response = client
+            .post(&format!("{}/subscriptions", &app.address))
+            .header("Content-Type", "application/x-www-form-url-encoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not return a 200 OK when the payload was {}.",
+            description
+        );
+    }
+}
+
+static TRACING: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber("test".into(), "debug".into(), std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
+
 async fn spawn_app() -> TestApp {
+    once_cell::sync::Lazy::force(&TRACING);
     let mut configuration = get_configuration().expect("Failed to load configuration");
     configuration.database.database_name = Uuid::new_v4().to_string();
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port");
