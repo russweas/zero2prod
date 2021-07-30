@@ -1,4 +1,4 @@
-use sqlx::{Connection, Database, Executor, PgConnection, PgPool};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::{
@@ -75,31 +75,34 @@ async fn subscribe_returns_a_400_for_invalid_form_data() {
         );
     }
 }
-
 #[actix_rt::test]
-async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
-    let app = spawn_app().await;
+async fn subscribe_returns_a_400_when_data_is_missing() {
+    // Arrange
     let client = reqwest::Client::new();
+    let app = spawn_app().await;
     let test_cases = vec![
-        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
-        ("name=Ursula&email=", "empty email"),
-        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+        ("name=le%20guin", "missing the email"),
+        ("email=ursula_le_guin%40gmail.com", "missing the name"),
+        ("", "missing both name and email"),
     ];
 
-    for (body, description) in test_cases {
+    for (invalid_body, error_message) in test_cases {
+        // Act
         let response = client
             .post(&format!("{}/subscriptions", &app.address))
-            .header("Content-Type", "application/x-www-form-url-encoded")
-            .body(body)
+            .header("Content-Type", "application/x-form-urlencoded")
+            .body(invalid_body)
             .send()
             .await
-            .expect("Failed to execute request");
+            .expect("Failed to send request");
 
+        // Assert
         assert_eq!(
             400,
             response.status().as_u16(),
-            "The API did not return a 200 OK when the payload was {}.",
-            description
+            // Additional customised error message on test failure
+            "The API did not fail with 400 Bad Request when the payload was {}.",
+            error_message
         );
     }
 }

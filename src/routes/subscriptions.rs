@@ -1,15 +1,24 @@
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
-use tracing::Subscriber;
-use unicode_segmentation::UnicodeSegmentation;
-use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberName};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use std::convert::TryFrom;
+use uuid::Uuid;
 #[derive(serde::Deserialize)]
 pub struct FormData {
     email: String,
     name: String,
+}
+
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(from: FormData) -> Result<NewSubscriber, Self::Error> {
+        let name = SubscriberName::parse(from.name)?;
+        let email = SubscriberEmail::parse(from.email)?;
+        Ok(NewSubscriber { email, name })
+    }
 }
 
 #[tracing::instrument(
@@ -20,17 +29,13 @@ pub struct FormData {
     )
 )]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    // let subscriber_name = crate::domain::SubscriberName(form.name.clone());
-    // if !is_valid_name(&form.name) {
-    //     return HttpResponse::BadRequest().finish();
-    // }
-    let new_subscriber = NewSubscriber {
-        email: form.0.email,
-        name: SubscriberName::parse(form.0.name).expect("Name validation failed"),
+    let new_subscriber = match NewSubscriber::try_from(form.into_inner()) {
+        Ok(subscriber) => subscriber,
+        Err(_) => return HttpResponse::BadRequest().finish(),
     };
     match insert_subscriber(&pool, &new_subscriber).await {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(e) => HttpResponse::InternalServerError().finish(),
+        Err(_e) => HttpResponse::InternalServerError().finish(),
     }
 }
 
@@ -39,9 +44,10 @@ pub async fn insert_subscriber(pool: &PgPool, new_sub: &NewSubscriber) -> Result
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
-        VALUES ($1, $2, $3, $4)"#,
+        VALUES ($1, $2, $3, $4)
+        "#,
         Uuid::new_v4(),
-        new_sub.email,
+        new_sub.email.as_ref(),
         new_sub.name.as_ref(),
         Utc::now()
     )
