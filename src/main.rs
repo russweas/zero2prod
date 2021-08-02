@@ -14,5 +14,7 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database.");
     let address = format!("127.0.0.1:{}", configuration.application_port);
     let listener = TcpListener::bind(address);
-    run(listener?, connection_pool)?.await
+    run(listener?, connection_pool)?.await;
+    opentelemetry::global::shutdown_tracer_provider();
+    Ok(())
 }

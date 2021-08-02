@@ -1,5 +1,6 @@
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use tracing::{span, Level};
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
@@ -77,6 +78,8 @@ async fn subscribe_returns_a_400_for_invalid_form_data() {
 }
 #[actix_rt::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
+    let _span = span!(Level::TRACE, "shaving_yaks").entered();
+
     // Arrange
     let client = reqwest::Client::new();
     let app = spawn_app().await;
@@ -105,6 +108,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             error_message
         );
     }
+    opentelemetry::global::force_flush_tracer_provider()
 }
 
 static TRACING: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
@@ -112,7 +116,7 @@ static TRACING: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
     let subscriber_name = "test".to_string();
 
     if std::env::var("TEST_LOG").is_ok() {
-        let subscriber = get_subscriber("test".into(), "debug".into(), std::io::stdout);
+        let subscriber = get_subscriber("zero2prod-test".into(), "debug".into(), std::io::stdout);
         init_subscriber(subscriber);
     } else {
         let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
