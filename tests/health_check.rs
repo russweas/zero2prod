@@ -24,10 +24,6 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
     let configuration = get_configuration().expect("Failed to read configuration");
-    let connection_string = configuration.database.connection_string();
-    let mut connection = PgConnection::connect(&connection_string)
-        .await
-        .expect("Failed to connect to Postgres.");
     let client = reqwest::Client::new();
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
     let response = client
@@ -40,7 +36,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     assert_eq!(200, response.status().as_u16());
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&mut connection)
+        .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
 
@@ -138,7 +134,7 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_db(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to db");
 
@@ -147,7 +143,7 @@ pub async fn configure_db(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to create db");
 
-    let connection_pool = PgPool::connect(&config.connection_string())
+    let connection_pool = PgPool::connect_with(config.without_db())
         .await
         .expect("Failed to connect to database");
 

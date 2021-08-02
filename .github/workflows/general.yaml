@@ -45,6 +45,14 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
+      - name: Migrate database
+        run: |
+          sudo apt-get install libpq-dev -y
+          cargo install --version=0.5.5 sqlx-cli --no-default-features --features postgres
+          SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Check sqlx metadata file
+        # New step!
+        run: cargo sqlx prepare --check -- --bin zero2prod
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

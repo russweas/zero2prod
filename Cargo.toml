@@ -31,6 +31,7 @@ opentelemetry-jaeger = { version = "0.13", features = ["tokio"] }
 tracing-opentelemetry = { version = "0.13" }
 tracing-subscriber = { version = "0.2.12", features = ["registry", "env-filter"] }
 tracing-bunyan-formatter = "0.1.6"
+serde-aux = "2.2.0"
 
 [dependencies.sqlx]
 version="0.5.1"
@@ -41,7 +42,8 @@ features = [
     "postgres", 
     "uuid", 
     "chrono", 
-    "migrate"
+    "migrate",
+    "offline"
 ]
 
 [dev-dependencies]
