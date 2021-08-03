@@ -61,6 +61,8 @@ pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
     pub authorization_token: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub http_timeout: u64,
 }
 
 impl EmailClientSettings {

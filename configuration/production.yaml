@@ -5,3 +5,4 @@ database:
 email_client:
   base_url: "https://api.postmarkapp.com"
   sender_email: "rdweas@crimson.ua.edu"
+  http_timeout: 10

@@ -1,5 +1,5 @@
 # Builder stage
-FROM rust:1.54.0 AS builder
+FROM rust:1.53.0 AS builder
 WORKDIR /app
 COPY . .
 ENV SQLX_OFFLINE true
